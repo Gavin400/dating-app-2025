@@ -12,5 +12,5 @@ public class UserDto
 
     public string? ImageUrl { get; set; }
 
-    public required string token { get; set; }
+    public required string Token { get; set; }
 }
