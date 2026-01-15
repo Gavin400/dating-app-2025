@@ -1,9 +1,8 @@
 # Full-Stack Dating App (.NET + Angular)
 
-This is a full-stack web application built as a long-term learning project over ~5 months.
-
-The project was developed by following a structured course, but all code was
-written, modified, debugged, and extended by me during the learning process.
+This is a full-stack web application developed incrementally over approximately five months
+as a practical learning project. The focus was on understanding real-world architecture,
+authentication, real-time communication, and deployment.
 
 ## Why this project exists
 The goal was to understand how a real-world application is built end-to-end:
