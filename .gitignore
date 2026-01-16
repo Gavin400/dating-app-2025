@@ -1,2 +1,5 @@
 API/appsettings.json
 API/dating.db
+*.db
+*.db-shm
+*.db-wal
