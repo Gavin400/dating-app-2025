@@ -1,113 +1,70 @@
-# Full-Stack Dating Application (.NET & Angular)
+# Dating App — Real-Time Full Stack Project
 
-This repository contains a full-stack web application developed incrementally over approximately **five months** as a hands-on learning and portfolio project.
+ASP.NET Core 9 · Angular 19 · SignalR · Azure
 
-The goal of this project was to gain a deep, practical understanding of how real-world web applications are designed, built, and deployed end-to-end, including backend APIs, frontend architecture, authentication, real-time communication, and cloud deployment.
 
----
 
-## Project Overview
+I know what you're thinking — another dating app tutorial project. It's not.
 
-The application is a dating-style platform that allows users to:
+After spending three years at Infosys building backend systems for PwC, most of my production work followed well-defined patterns. REST APIs, database queries, JWT auth, standard stuff. Good work, but client requirements don't leave much room to make architectural decisions from scratch.
 
-- Register and authenticate securely
-- Create and manage user profiles
-- Upload and display profile photos
-- Browse other users with paging, sorting, and filtering
-- Like other users and view matches
-- Exchange private messages
-- See real-time presence and messaging updates
+I wanted a personal project where I had to figure things out rather than follow a spec. A dating platform forced me to deal with problems I hadn't tackled in production: real-time connections, presence tracking, authorization that's more nuanced than checking a role. It's a good stress test because it needs all of it at once — identity, messaging, admin moderation, stateful client-server interaction.
 
-The project follows a clean separation between a **RESTful ASP.NET Core Web API** backend and an **Angular single-page application** frontend.
 
----
 
-## Technology Stack
+## What I actually cared about building
 
-### Backend
-- ASP.NET Core Web API
-- Entity Framework Core
-- JWT-based authentication and authorization
-- SignalR for real-time messaging and presence
-- AutoMapper
-- SQL-based persistence with EF Core migrations
+**Authenticated SignalR connections.** Getting JWT auth to work on WebSocket handshakes, not just REST routes, was the first real hurdle. Most examples online gloss over this part.
 
-### Frontend
-- Angular
-- Angular Routing and Route Guards
-- Reactive Forms and validation
-- HTTP interceptors for authentication and error handling
-- Tailwind CSS and DaisyUI for UI styling
+**Presence tracking.** This sounds simple until you realise a user might have three tabs open. If they close one tab, they're still online. You only broadcast "offline" when the last connection drops. I ended up tracking connections per user rather than just users — a `Dictionary<string, List<string>>` mapping usernames to connection IDs. It works, but it's in-memory, which means it breaks the moment you scale horizontally. Redis would fix that. I know where the problem is, I just didn't need to solve it for this scale.
 
-### Deployment
-- Application published to Microsoft Azure
-- Cloud-based database and API hosting
+**Policy-based authorization.** I started with `[Authorize(Roles = "Admin")]` and it was fine for the first few routes. Then I added photo moderation and needed to say "a user can only delete their own photo." Role checks can't express that cleanly. Policies can. Moving to policy-based auth made the controllers simpler and the access rules easier to reason about.
 
----
+**Keeping business logic out of controllers.** I've maintained code where controllers do everything — validation, queries, business rules, response mapping. It's painful. This project has a proper service layer and repository pattern, partly because I wanted to practice it properly, partly because I knew I'd be reading my own code three months later.
 
-## Development Timeline
 
-The project was developed incrementally, focusing on understanding each layer before moving on to the next:
 
-- **Month 1:** API setup, Entity Framework Core, basic CRUD operations
-- **Month 2:** Authentication, JWT handling, user profiles
-- **Month 3:** Angular routing, guards, forms, and validation
-- **Month 4:** Private messaging system and real-time features using SignalR
-- **Month 5:** Refactoring, performance improvements, bug fixes, and Azure deployment
+## Stack
 
----
+Backend: ASP.NET Core 9, EF Core, ASP.NET Identity, SignalR, JWT  
+Frontend: Angular 19, Tailwind CSS, DaisyUI, SignalR client  
+Database: SQL Server / Azure SQL  
+Storage: Azure Blob Storage  
+Deployment: Azure App Service, GitHub Actions CI/CD
 
-## Key Features Implemented
 
-- Secure user registration and login using JWT authentication
-- Protected API endpoints and Angular routes
-- Profile photo upload and gallery functionality
-- Paging, sorting, and filtering of user data
-- Like system and match tracking
-- Private messaging between users
-- Real-time messaging and online presence using SignalR
-- Loading indicators, caching strategies, and UI improvements
-- Error handling on both API and frontend layers
+
+## What I'd do differently
+
+The boundary between messaging and user profile management got blurry as features grew. Both touch the `AppUser` entity, and some services ended up doing too much. I'd separate those concerns earlier next time — a proper messaging domain rather than letting it mix with profile logic. You don't see the problem until you're three features in.
+
+
+
+## Running it locally
+
+```bash
+# Backend
+cd API
+dotnet restore
+dotnet ef database update
+dotnet run
+
+# Frontend
+cd client
+npm install
+ng serve
+```
+
+Runs at `https://localhost:4200`
+
+
+
+## Deployment
+
+Azure App Service. Environment-based config, no secrets in code, migrations run on startup, CI/CD via GitHub Actions.
+
+Live demo: [link once deployment is finalised]
 
 ---
 
-## Challenges & Learnings
-
-During development, several real-world challenges were encountered and resolved, including:
-
-- Managing JWT tokens and authentication state across the API and Angular application
-- Debugging SignalR connection lifecycles and handling reconnect scenarios
-- Structuring Angular services and components for scalability
-- Handling Entity Framework Core migrations during ongoing development
-- Improving perceived performance with caching and loading indicators
-- Refactoring features as requirements evolved
-
----
-
-## Project Purpose
-
-While it is not intended to be a commercial product, it demonstrates practical experience with:
-
-- Full-stack application architecture
-- Modern authentication and security patterns
-- Real-time communication
-- Frontend and backend integration
-- Cloud deployment workflows
-
----
-
-## Future Improvements
-
-Potential future enhancements include:
-
-- Email verification and password reset flows
-- Admin and moderation features
-- Enhanced monitoring and logging
-- Additional UI/UX improvements
-- Rate limiting and abuse prevention
-
----
-
-## Final Notes
-
-This project represents sustained, incremental development and hands-on problem solving over several months. Every feature was implemented, tested, and refined as part of the learning process, with a strong focus on understanding how real-world applications are built and maintained.
+Built by Gavin Peris · [LinkedIn](https://www.linkedin.com/in/gavin-peris-25339316a/) · Berlin
