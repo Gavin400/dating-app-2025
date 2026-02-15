@@ -24,8 +24,13 @@
                 </ul>
             </div>
             <div class="card-actions justify-between gap-2 px-2 mb-3">
-                <button class="btn btn-info flex-1">Go Back</button>
-                <button class="btn btn-primary flex-1">Like user</button>
+                <button routerLink="/members" class="btn btn-info flex-1">Go Back</button>
+                <button 
+                    (click)="likesService.toggleLike(member.id)"
+                    [class.btn-error]="hasLiked()"
+                    [class.btn-success]="!hasLiked()"
+                    class="btn  flex-1"
+                    >{{hasLiked()? 'Remove like': 'Like user'}}</button>
             </div>
         </div>
         <div class="card bg-base-100 w-3/4 p-6 flex flex-col h-[85vh]">
