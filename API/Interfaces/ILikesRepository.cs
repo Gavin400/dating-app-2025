@@ -18,5 +18,5 @@ public interface ILikesRepository
 
     void AddLike(MemberLike like);
 
-    Task<bool> SaveAllChanges();
+    
     }
