@@ -4,7 +4,6 @@ using API.Extensions;
 using API.Helpers;
 using API.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using SQLitePCL;
 
 namespace API.Controllers;
 
