@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using API.Data;
 using API.Entities;
 using API.Helpers;
@@ -19,7 +19,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddDbContext<AppDbContext>(opt =>
 {
-     opt.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+     opt.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 
 builder.Services.AddCors();
