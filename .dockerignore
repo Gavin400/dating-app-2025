@@ -1,0 +1,9 @@
+**/bin
+**/obj
+**/node_modules
+**/.angular
+.git
+.github
+.vscode
+API/appsettings.Development.json
+API/*.db
