@@ -1,10 +1,15 @@
 services:
-  sql:
-    image: mcr.microsoft.com/mssql/server:2022-latest
-    container_name: sql
+  db:
+    image: postgres:17
+    container_name: datingapp-db
     environment:
-      ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: "Password@1"
-    platform: "linux/amd64"
+      POSTGRES_USER: appuser
+      POSTGRES_PASSWORD: devpassword
+      POSTGRES_DB: datingapp
     ports:
-      - "1433:1433"
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
