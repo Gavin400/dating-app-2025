@@ -1,172 +1,109 @@
-# Real-Time Full-Stack Application
+# Dating App — ASP.NET Core 9 + Angular 19
 
-**ASP.NET Core 9 · Angular 19 · SignalR · Azure**
+A full-stack, real-time web app with member profiles, photo uploads, likes, paged/filtered member search, private messaging and live presence.
 
-🔗 **Live Demo:** https://dat-2025.azurewebsites.net  
-📦 **CI/CD:** GitHub Actions → Azure App Service  
-☁️ **Database:** Azure SQL  
-🗄 **Storage:** Azure Blob Storage  
+🔗 **Live demo:** https://gavin-dating-app.onrender.com
+*(hosted on Render's free tier — the first request after a while may take ~30–60s while the service wakes up)*
 
 ---
 
-## Overview
+## Where this project comes from
 
-This project was built to explore real-time system design, connection lifecycle management, and production-ready cloud deployment using the .NET ecosystem.
+I built the core of this app by working through Neil Cummings' Udemy course *"Build an app with ASP.NET Core and Angular from scratch"*. The early commit history follows the course sections.
 
-Having worked primarily on structured enterprise backend systems at Infosys (PwC client), I wanted to build something where architectural decisions, trade-offs, and domain boundaries had to be defined from scratch.
+I used the course to get hands-on with parts of the .NET/Angular stack I hadn't used much in my enterprise work at Infosys — SignalR, ASP.NET Identity, and Angular signals. Everything after the course baseline is my own work and is listed below.
 
-The result is a real-time web application that combines:
+## What I did beyond the course
 
-- Stateful WebSocket communication  
-- JWT-based authentication  
-- Policy-based authorization  
-- Cloud-native deployment  
-- CI/CD automation  
+- **Moved the database from SQL Server to PostgreSQL.** I switched the EF Core provider to Npgsql, regenerated the migrations and moved production data to a managed **Neon** Postgres instance.
+- **Rehosted from Azure to Render.** My Azure access was time-limited, so I wrote a **multi-stage Dockerfile**. It builds the Angular client, publishes the .NET API with the client served from `wwwroot`, and produces a slim ASP.NET runtime image. That image runs on Render.
+- **Configuration through environment variables only.** The connection string, JWT key and Cloudinary credentials all come from the environment. No secrets are committed.
 
----
-
-## Architecture
-<img width="1024" height="1536" alt="ChatGPT Image Feb 23, 2026, 11_52_09 PM" src="https://github.com/user-attachments/assets/e5340ce5-4cc3-41e2-9d9f-696568430dfc" />
-
-
-- Real-time communication handled via SignalR hubs  
-- Deployment automated through GitHub Actions  
-- Environment-based configuration throughout  
-- No secrets stored in source control  
+*(This list will grow — see "What I'm adding next".)*
 
 ---
 
-## Key Technical Decisions
+## Features
 
-### Authenticated SignalR Connections
+- Registration and login with **ASP.NET Identity** and **JWT** (role claims included in the token)
+- Member list with **paging, sorting and filtering**
+- Profile editing and **photo upload** via Cloudinary, with an **admin photo-approval** workflow
+- **Likes** (who I liked / who liked me / mutual)
+- **Private messaging** with read receipts
+- **Live presence** and new-message notifications over **SignalR**
+- **Role- and policy-based authorization** for admin and moderator areas
 
-JWT authentication is validated during WebSocket negotiation, not only on REST endpoints.  
-Hub access is restricted via claims-based authorization.
+## Tech stack
+
+| Layer | Tech |
+|---|---|
+| Backend | ASP.NET Core 9, EF Core, ASP.NET Identity, SignalR, JWT |
+| Frontend | Angular 19, Tailwind CSS, DaisyUI, SignalR client |
+| Data | PostgreSQL (Neon in production) |
+| Media | Cloudinary |
+| Hosting | Docker → Render |
 
 ---
 
-### Presence Tracking with Multiple Active Connections
+## Design notes
 
-People can open the site in different tabs or on several devices all at once. That means a user might show up with multiple connections happening. Connections get tracked based on the user overall. 
+These are the parts of the system I can explain and defend in detail.
 
-```csharp
-Dictionary<string, List<string>>
+**Authenticated SignalR connections.** The JWT is validated during the WebSocket negotiation, not only on REST endpoints. Hub access is restricted by claims.
+
+**Presence with multiple connections per user.** One user can have several tabs or devices open, so presence is tracked per user as a set of connection IDs. A user only goes offline when their last connection closes.
+**Known limitation:** this state lives in memory, so it only works on a single instance. Scaling out would need a Redis backplane or Azure SignalR Service.
+
+**Unit of Work over repositories.** Controllers depend on a Unit of Work that groups the member, likes, message and photo repositories. Related changes are saved in one transaction.
+
+**Policy-based authorization.** Admin and moderator access is defined as named policies rather than scattered role checks, which keeps the controllers thin.
+
+---
+
+## What I'm adding next
+
+- [ ] Redis backplane for SignalR presence, so the app can run on more than one instance
+- [ ] Automated tests: xUnit unit tests, plus API integration tests against Postgres using Testcontainers
+- [ ] GitHub Actions CI to build and run tests on every push
+- [ ] Health-check endpoint and rate limiting on the auth endpoints
+
+---
+
+## Running locally
+
+**Prerequisites:** .NET 9 SDK, Node 22, and a PostgreSQL instance (local or Neon).
+
+Set the configuration, either in `API/appsettings.Development.json` or as environment variables:
+
+```
+ConnectionStrings__DefaultConnection=Host=localhost;Database=datingapp;Username=...;Password=...
+TokenKey=<a long random string>
+CloudinarySettings__CloudName=...
+CloudinarySettings__ApiKey=...
+CloudinarySettings__ApiSecret=...
 ```
 
-A user is marked offline only when their final connection closes.
+**API**
+```bash
+cd API
+dotnet restore
+dotnet ef database update
+dotnet run
+```
 
-This implementation is intentionally in-memory.
-For horizontal scaling across multiple instances, a distributed cache (e.g., Redis) or Azure SignalR Service would be required.
+**Client**
+```bash
+cd client
+npm install
+ng serve
+```
 
----
-
-### Policy-Based Authorization
-
-At first, role-based checks seemed to handle things okay. But then there were these more detailed needs, like making sure users could only change their own resources or something like that. It got to the point where policy-based authorization had to step in, I guess.
-
-Defining access rules in a declarative way keeps the controllers from getting too bulky. And yeah, that probably makes everything easier to read overall. Some parts feel a bit straightforward, but it works.
-
----
-
-### Separation of Concerns
-
-- Controllers remain lightweight
-- Business logic lives in services
-- Repository pattern abstracts persistence
-- Messaging concerns are partially separated from profile logic
-
-  One improvement I would make in a larger system would be clearer domain isolation between messaging and user management earlier in development.
+**Or run everything with Docker**
+```bash
+docker build -t dating-app .
+docker run -p 8080:8080 --env-file .env dating-app
+```
 
 ---
 
- ## Technology Stack
-
- ### Backend
- - ASP.NET Core 9
- - Entity Framework Core
- - ASP.NET Identity
- - SignalR
- - JWT Authentication
-
- ### Frontend
- - Angular 19
- - Tailwind CSS
- - DaisyUI
- - SignalR Client
-
- ### Infrastructure
- - SQL Server (Docker locally → Azure SQL in production)
- - Azure Blob Storage
- - Azure App Service
- - GitHub Actions CI/CD
- - Environment-based configuration
-
- ---
-
- ## Deployment
-
- Push to ``` main ``` → GitHub Actions pipeline builds → Deploys to Azure App Service.
- - Database migrations execute on startup
- - Production configuration uses Azure-managed connection strings.
-
- ---
-
- ## Development Workflow
-
- Docker was used locally to run SQL Server, ensuring development and production database engines remained aligned.
- The application was later deployed using Azure SQL for managed cloud hosting.
-
- ---
-
- ## Use of AI Assistance
-
- AI tools were used during development as an assistive resource for:
-
- - Researching edge cases
- - Exploring alternative implementations
- - Reviewing architectural trade-offs
- - Iterating on documentation
-
- All architectural decisions, integration work, debugging, and deployment configuration were implemented and validated manually.
-
- ---
-
-  ## Running Locally
-
-  ### Backend
-
-  ```
-  cd API
-  dotnet restore
-  dotnet ef database update
-  dotnet run
-  ```
-
-  ### Frontend
-
-  ```
-  cd client
-  npm install
-  ng serve
-  ```
-
-  Runs at:
-  ```
-  https://localhost:4200
-  ```
- ---
-
-<p align="center">
-  <img src="https://avatars.githubusercontent.com/u/40817689?v=4" width="30" height="30" style="border-radius:50px;vertical-align:middle;" />
-  <sub style="vertical-align:middle;">
-    Made with ❤️ by <b>Gavin Peris</b> | 
-    <a href="https://www.linkedin.com/in/gavin-peris-25339316a/">LinkedIn</a> | 
-    Based in Berlin
-  </sub>
-</p>
-
-
-
- 
-
- 
+Built by **Gavin Peris** · Berlin · [LinkedIn](https://www.linkedin.com/in/gavin-peris-25339316a/)
